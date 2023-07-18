@@ -1,14 +1,18 @@
 package com.example.expensemanager;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.graphics.drawable.Animatable;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,6 +22,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,6 +41,8 @@ import com.google.firebase.database.ValueEventListener;
 
 import org.w3c.dom.Text;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
 
@@ -50,6 +57,7 @@ public class DashboardFragment extends Fragment {
     //Floating Button
 
     private FloatingActionButton fab_main;
+    private ImageView cameraBtn;
     private FloatingActionButton fab_income;
     private FloatingActionButton fab_expense;
 
@@ -258,6 +266,7 @@ public class DashboardFragment extends Fragment {
 
         Button saveBtn=myview.findViewById(R.id.btnSave);
         Button cancelBtn=myview.findViewById(R.id.btnCancel);
+        cameraBtn=myview.findViewById(R.id.btnCamera);
 
 
         saveBtn.setOnClickListener(new View.OnClickListener() {
@@ -296,7 +305,12 @@ public class DashboardFragment extends Fragment {
                 floatingButtonAnimation();
             }
         });
+        cameraBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
 
+            }
+        });
         cancelBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -307,6 +321,7 @@ public class DashboardFragment extends Fragment {
         dialog.show();
     }
 
+    
 
     public void insertExpenseData(){
         AlertDialog.Builder mydialog=new AlertDialog.Builder(getActivity());
