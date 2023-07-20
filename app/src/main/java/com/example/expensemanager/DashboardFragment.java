@@ -1,7 +1,11 @@
 package com.example.expensemanager;
 
+import static android.app.Activity.RESULT_OK;
+
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Animatable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,6 +16,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
@@ -30,6 +35,8 @@ import com.example.expensemanager.Model.Data;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseApp;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -38,13 +45,21 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.UUID;
+
+import android.content.Context;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -83,9 +98,12 @@ public class DashboardFragment extends Fragment {
     private FirebaseAuth mAuth;
     private DatabaseReference mIncomeDatabase;
     private DatabaseReference mExpenseDatabase;
-
+    private ImageView imageView;
+    private Uri filePath;
+    private final int PICK_IMAGE_REQUEST = 71;
     //Recycler view
     private RecyclerView mRecyclerIncome;
+
     private RecyclerView mRecyclerExpense;
 
     @Override
@@ -93,7 +111,6 @@ public class DashboardFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View myview = inflater.inflate(R.layout.fragment_dashboard, container, false);
-
         mAuth=FirebaseAuth.getInstance();
 
         FirebaseUser mUser=mAuth.getCurrentUser();
@@ -260,6 +277,7 @@ public class DashboardFragment extends Fragment {
         mydialog.setView(myview);
         final AlertDialog dialog=mydialog.create();
         dialog.setCancelable(false);
+        imageView = (ImageView)myview.findViewById(R.id.imageView);
         EditText edtamount=myview.findViewById(R.id.amount);
         EditText edtType=myview.findViewById(R.id.type_edt);
         EditText edtNote=myview.findViewById(R.id.note_edt);
@@ -305,9 +323,14 @@ public class DashboardFragment extends Fragment {
                 floatingButtonAnimation();
             }
         });
+
         cameraBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Intent intent=new Intent();
+                intent.setType("image/*");
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent,"Select the receipt of the transaction"),22);
 
             }
         });
@@ -320,9 +343,56 @@ public class DashboardFragment extends Fragment {
         });
         dialog.show();
     }
-
-    
-
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK
+                && data != null && data.getData() != null )
+        {
+            filePath = data.getData();
+            try {
+                Bitmap bitmap = MediaStore.Images.Media.getBitmap(requireActivity().getContentResolver(), filePath);
+                imageView.setImageBitmap(bitmap);
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+    private void uploadImage() {
+        FirebaseStorage storage;
+        StorageReference storageReference;
+        storage = FirebaseStorage.getInstance();
+        storageReference = storage.getReference();
+        if(filePath != null)
+        {
+            final ProgressDialog progressDialog = new ProgressDialog(requireContext());
+            progressDialog.setTitle("Uploading...");
+            progressDialog.show();
+            StorageReference ref = storageReference.child("images/"+ UUID.randomUUID().toString());
+            ref.putFile(filePath)
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            Toast.makeText(requireContext(), "Uploaded", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(requireContext(), "Failed "+e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                            double progress = (100.0*taskSnapshot.getBytesTransferred()/taskSnapshot
+                                    .getTotalByteCount());
+                        }
+                    });
+        }
+    }
     public void insertExpenseData(){
         AlertDialog.Builder mydialog=new AlertDialog.Builder(getActivity());
         LayoutInflater inflater=LayoutInflater.from(getActivity());
@@ -451,7 +521,6 @@ public class DashboardFragment extends Fragment {
         }
 
     }
-
     // For expense Data
 
     public static class ExpenseViewHolder extends  RecyclerView.ViewHolder{
