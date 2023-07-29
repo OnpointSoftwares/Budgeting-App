@@ -114,15 +114,25 @@
                 </RelativeLayout>
 
             </LinearLayout>
-            <ImageView
-                android:id="@+id/imageView"
-                android:src=""
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_gravity="center_horizontal"
                 android:layout_height="wrap_content"
-                android:background="@color/account_background"
-                android:textAppearance="?android:textAppearanceMedium"
-                />
+                android:orientation="horizontal"
+                android:layout_gravity="center_horizontal"
+                android:gravity="center_horizontal"
+                >
+                <ImageView
+                    android:src="@color/black"
+                    android:id="@+id/fpath"
+                    android:text="No receipt file selected"
+                    android:layout_width="100dp"
+                    android:layout_marginBottom="10dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_height="100dp"
+                    android:textAppearance="?android:textAppearanceMedium"
+                    />
+            </LinearLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

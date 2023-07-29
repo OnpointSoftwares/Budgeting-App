@@ -1,23 +1,14 @@
-package com.example.expensemanager;
+package com.example.expensemanager.admin;
 
 import static android.app.Activity.RESULT_OK;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.drawable.Animatable;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.core.content.FileProvider;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -31,9 +22,14 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.expensemanager.Model.Data;
-import com.firebase.client.Firebase;
-import com.firebase.client.FirebaseApp;
+import com.example.expensemanager.Model.userid;
+import com.example.expensemanager.R;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -50,16 +46,9 @@ import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
-import org.w3c.dom.Text;
-
-import java.io.File;
-import java.io.IOException;
 import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
-
-import android.content.Context;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -98,9 +87,7 @@ public class DashboardFragment extends Fragment {
     private FirebaseAuth mAuth;
     private DatabaseReference mIncomeDatabase;
     private DatabaseReference mExpenseDatabase;
-    private DatabaseReference mAdminIncomeDatabase;
-    private DatabaseReference mAdminExpenseDatabase;
-    private ImageView receiptTxt;
+    private TextView receiptTxt;
     private Uri filePath;
     private final int PICK_IMAGE_REQUEST = 71;
     //Recycler view
@@ -112,17 +99,12 @@ public class DashboardFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        View myview = inflater.inflate(R.layout.fragment_dashboard, container, false);
-        mAuth=FirebaseAuth.getInstance();
-
-        FirebaseUser mUser=mAuth.getCurrentUser();
-        String uid=mUser.getUid().toString();
+        View myview = inflater.inflate(R.layout.fragment_dashboardadmin, container, false);
+        SharedPreferences sh= getContext().getSharedPreferences("mysharepref", Context.MODE_PRIVATE);
+        String uid=sh.getString("id","");
 
         mIncomeDatabase= FirebaseDatabase.getInstance().getReference().child("IncomeData").child(uid);
         mExpenseDatabase=FirebaseDatabase.getInstance().getReference().child("ExpenseData").child(uid);
-        mAdminExpenseDatabase=FirebaseDatabase.getInstance().getReference().child("ExpenseData").child("admin");
-        mAdminIncomeDatabase= FirebaseDatabase.getInstance().getReference().child("IncomeData").child("admin");
-
 
         mIncomeDatabase.keepSynced(true);
         mExpenseDatabase.keepSynced(true);
@@ -282,13 +264,14 @@ public class DashboardFragment extends Fragment {
         mydialog.setView(myview);
         final AlertDialog dialog=mydialog.create();
         dialog.setCancelable(false);
+        TextView receiptTxt =myview.findViewById(R.id.fpath);
         EditText edtamount=myview.findViewById(R.id.amount);
         EditText edtType=myview.findViewById(R.id.type_edt);
         EditText edtNote=myview.findViewById(R.id.note_edt);
 
         Button saveBtn=myview.findViewById(R.id.btnSave);
         Button cancelBtn=myview.findViewById(R.id.btnCancel);
-        ImageView cameraBtn=myview.findViewById(R.id.btnCamera);
+        Button cameraBtn=myview.findViewById(R.id.btnCamera);
 
 
         saveBtn.setOnClickListener(new View.OnClickListener() {
@@ -320,7 +303,7 @@ public class DashboardFragment extends Fragment {
                 Data data=new Data(amountInInt, type, note, id, mDate);
 
                 mIncomeDatabase.child(id).setValue(data);
-                mAdminIncomeDatabase.child(mAuth.getCurrentUser().getUid()).child(id).setValue(data);
+
                 Toast.makeText(getActivity(), "Transaction Added Successfully!", Toast.LENGTH_SHORT).show();
 
                 dialog.dismiss();
@@ -331,7 +314,6 @@ public class DashboardFragment extends Fragment {
         cameraBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                SelectImage();
             }
 
         });
@@ -357,29 +339,21 @@ public class DashboardFragment extends Fragment {
         if(resultCode==RESULT_OK){
             if(requestCode==200)
             {
-                if (data!=null)
-            {
-                Uri selectedImageUri=data.getData();
-                filePath=selectedImageUri;
-                Toast.makeText(requireContext(),selectedImageUri.getPath(),Toast.LENGTH_LONG).show();
-                    uploadImage();
+                receiptTxt.setText(data.getData().toString());
             }
-                else{
-                    Toast.makeText(requireActivity(),"null..",Toast.LENGTH_SHORT).show();
-
-                }
         }
-    }
     }
     private void uploadImage() {
         FirebaseStorage storage;
         StorageReference storageReference;
         storage = FirebaseStorage.getInstance();
         storageReference = storage.getReference();
+        if(receiptTxt != null)
+        {
             final ProgressDialog progressDialog = new ProgressDialog(requireContext());
             progressDialog.setTitle("Uploading...");
             progressDialog.show();
-            StorageReference ref = storageReference.child("images/"+ mAuth.getCurrentUser().getUid()+"/"+UUID.randomUUID().toString());
+            StorageReference ref = storageReference.child("images/"+ UUID.randomUUID().toString());
             ref.putFile(filePath)
                     .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                         @Override
@@ -401,30 +375,23 @@ public class DashboardFragment extends Fragment {
                         }
                     });
         }
-
+    }
     public void insertExpenseData(){
         AlertDialog.Builder mydialog=new AlertDialog.Builder(getActivity());
         LayoutInflater inflater=LayoutInflater.from(getActivity());
-
+        userid usid=new userid();
         View myview=inflater.inflate(R.layout.custom_layout_for_insertdata, null);
-        mydialog.setView(myview);
+        mydialog.setView(myview);Toast.makeText(requireActivity(),usid.getId(),Toast.LENGTH_LONG).show();
 
         final AlertDialog dialog=mydialog.create();
         dialog.setCancelable(false);
         EditText edtamount=myview.findViewById(R.id.amount);
         EditText edttype=myview.findViewById(R.id.type_edt);
         EditText edtnote=myview.findViewById(R.id.note_edt);
-        ImageView cameraBtn=myview.findViewById(R.id.btnCamera);
+
         Button saveBtn=myview.findViewById(R.id.btnSave);
         Button cancelBtn=myview.findViewById(R.id.btnCancel);
 
-        cameraBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SelectImage();
-            }
-
-        });
         saveBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -448,13 +415,12 @@ public class DashboardFragment extends Fragment {
 
                 //Create random ID inside database
                 String id=mExpenseDatabase.push().getKey();
+
                 String mDate= DateFormat.getDateInstance().format(new Date());
 
                 Data data=new Data(amountInInt, type, note, id, mDate);
 
                 mExpenseDatabase.child(id).setValue(data);
-
-                mAdminExpenseDatabase.child(mAuth.getCurrentUser().getUid()).child(id).setValue(data);
 
                 Toast.makeText(getActivity(), "Transaction Added Successfully!", Toast.LENGTH_SHORT).show();
 
@@ -481,7 +447,7 @@ public class DashboardFragment extends Fragment {
         FirebaseRecyclerAdapter<Data, IncomeViewHolder> incomeAdapter=new FirebaseRecyclerAdapter<Data, IncomeViewHolder>(
                 Data.class,
                 R.layout.dashboard_income,
-                DashboardFragment.IncomeViewHolder.class,
+                IncomeViewHolder.class,
                 mIncomeDatabase
         ) {
             @Override
@@ -497,7 +463,7 @@ public class DashboardFragment extends Fragment {
         FirebaseRecyclerAdapter<Data, ExpenseViewHolder> expenseAdapter= new FirebaseRecyclerAdapter<Data, ExpenseViewHolder>(
                 Data.class,
                 R.layout.dashboard_expense,
-                DashboardFragment.ExpenseViewHolder.class,
+                ExpenseViewHolder.class,
                 mExpenseDatabase
         ) {
             @Override

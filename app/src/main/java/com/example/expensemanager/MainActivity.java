@@ -50,40 +50,44 @@ public class MainActivity extends AppCompatActivity {
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String email=mEmail.getText().toString().trim();
-                String password=mPassword.getText().toString().trim();
+                String email = mEmail.getText().toString().trim();
+                String password = mPassword.getText().toString().trim();
 
-                if(TextUtils.isEmpty(email)){
+                if (TextUtils.isEmpty(email)) {
                     mEmail.setError("Email cannot be empty. Please enter a valid Email id");
                     return;
                 }
-                if(TextUtils.isEmpty(password)){
+                if (TextUtils.isEmpty(password)) {
                     mPassword.setError("Password cannot be empty.");
                     return;
                 }
 
                 mDialog.setMessage("Processing");
                 mDialog.show();
+                Toast.makeText(getApplicationContext(), ""+email, Toast.LENGTH_SHORT).show();
 
-                mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
+                if (email.equals("admin@admin.com")) {
+                    startActivity(new Intent(getApplicationContext(), com.example.expensemanager.admin.HomeActivity.class));
+                } else {
+                    mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<AuthResult> task) {
 
-                        if(task.isSuccessful())
-                        {
-                            mDialog.dismiss();
-                            Toast.makeText(getApplicationContext(),"Login Successful!",Toast.LENGTH_SHORT).show();
-                            startActivity(new Intent(getApplicationContext(), HomeActivity.class));
-                            finish();
+                            if (task.isSuccessful()) {
+                                mDialog.dismiss();
+                                Toast.makeText(getApplicationContext(), "Login Successful!", Toast.LENGTH_SHORT).show();
+                                startActivity(new Intent(getApplicationContext(), HomeActivity.class));
+                                finish();
+                            } else {
+                                mDialog.dismiss();
+                                Toast.makeText(getApplicationContext(), "Login Failed!", Toast.LENGTH_SHORT).show();
+                            }
                         }
-                        else{
-                            mDialog.dismiss();
-                            Toast.makeText(getApplicationContext(),"Login Failed!",Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
+                    });
+                }
             }
         });
+
         // Redirect to SignUp activity
         mSignup.setOnClickListener(new View.OnClickListener() {
             @Override

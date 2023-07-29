@@ -14,10 +14,15 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.expensemanager.Model.userid;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.HashMap;
 
 public class RegistrationActivity extends AppCompatActivity {
 
@@ -27,6 +32,8 @@ public class RegistrationActivity extends AppCompatActivity {
     private TextView mLogin;
 
     private ProgressDialog mDialog;
+
+    private DatabaseReference mUsersDatabase;
 
     //Firebase...
 
@@ -39,6 +46,8 @@ public class RegistrationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_registration);
 
         mAuth = FirebaseAuth.getInstance();
+
+        mUsersDatabase= FirebaseDatabase.getInstance().getReference().child("users");
 
         mDialog = new ProgressDialog(this);
 
@@ -74,6 +83,10 @@ public class RegistrationActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
 
                         if(task.isSuccessful()){
+                            HashMap<String, Object> mHashmap = new HashMap<>();
+                            mHashmap.put("uid",mAuth.getCurrentUser().getUid().toString());
+                            mHashmap.put("email",email);
+                            mUsersDatabase.child(mAuth.getCurrentUser().getUid().toString()).setValue(mHashmap);
                             mDialog.dismiss();
                             Toast.makeText(getApplicationContext(), "Registration successful!", Toast.LENGTH_SHORT).show();
                             startActivity(new Intent(getApplicationContext(), HomeActivity.class));
